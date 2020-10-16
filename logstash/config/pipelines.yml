@@ -1,0 +1,2 @@
+- pipeline.id: fact_hasonhaivan_ben_xe
+  path.config: "/usr/share/logstash/pipeline/hasonhaivan/fact_ben_xe.conf"

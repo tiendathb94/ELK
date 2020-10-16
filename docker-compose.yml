@@ -1,0 +1,107 @@
+version: "3.2"
+
+services:
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - type: bind
+        source: ./elasticsearch/data
+        target: /usr/share/elasticsearch/data
+      - type: bind
+        source: ./elasticsearch/plugin
+        target: /tmp/plugin
+        read_only: true
+      - type: bind
+        source: ./elasticsearch/x-pack-core-7.7.1.jar
+        target: /usr/share/elasticsearch/modules/x-pack-core/x-pack-core-7.7.1.jar
+        read_only: true
+      - type: bind
+        source: ./timezone/Ho_Chi_Minh
+        target: /etc/localtime
+        read_only: true
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx10000m -Xms5000m"
+      ELASTIC_PASSWORD: changeme
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks
+      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+    networks:
+      - myNetworkBak
+
+  logstash:
+    build:
+      context: logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./logstash/config/logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+        read_only: true
+      - type: bind
+        source: ./logstash/pipeline
+        target: /usr/share/logstash/pipeline
+        read_only: true
+      - type: bind
+        source: ./logstash/java/mariadb-java-client-2.6.0.jar
+        target: /usr/share/logstash/logstash-core/lib/jars/mariadb-java-client-2.6.0.jar
+        read_only: true
+      - type: bind
+        source: ./logstash/jdbc_last_run_metadata_path
+        target: /usr/share/logstash/jdbc_last_run_metadata_path
+      - type: bind
+        source: ./logstash/config/pipelines.yml
+        target: /usr/share/logstash/config/pipelines.yml
+        read_only: true
+      - type: bind
+        source: ./timezone/Ho_Chi_Minh
+        target: /etc/localtime
+        read_only: true
+    ports:
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx5000m -Xms2500m"
+    networks:
+      - myNetworkBak
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+      - type: bind
+        source: ./timezone/Ho_Chi_Minh
+        target: /etc/localtime
+        read_only: true
+    ports:
+      - "5601:5601"
+    networks:
+      - myNetworkBak
+    depends_on:
+      - elasticsearch
+
+networks:
+  myNetworkBak:
+    external: true
+
+volumes:
+  elasticsearch:
